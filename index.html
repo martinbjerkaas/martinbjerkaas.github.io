@@ -1,179 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>loading...</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WalkTheTalk Challenge 2025</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background-color: #95a5a6;
+    }
 
-    <meta name="title" content="WalkTheTalk">
-    <meta name="viewport" content="width=device-width">
+    header {
+      text-align: center;
+      padding: 20px 0;
+      background-color: #ecf0f1;
+      color: #34495e;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-    <!-- Add jQuery library -->
-    <script type="text/javascript" src="https://code.jquery.com/jquery-latest.min.js"></script>
+    #canvas-container {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden; /* Prevent scrolling */
+    }
 
-    <!-- hightlight.js - Syntax highlighting for the Web -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/default.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/highlight.min.js"></script>
+    #canvas {
+      width: 100%;
+      display: block;
+    }
 
-    <style type="text/css">
-        p, p a { font-family: Courier New, Verdana, Arial; font-size: medium; text-align: right; }
-        #eximage { width: 100%; height: 100%; text-align: center; }
-        #eximage img { margin: 0 auto; border: 1px solid; border-color: black; }
-        #eximage canvas { position: relative; top: 1px; left: 1px; border: 2px solid lightslategrey; background: black; }
-        pre { width: 802px!important;}
-        pre code{ border: 1px solid; border-color:#b0b0b0; height:auto; }
-        .exdownbtn{ margin-right: 20px; width:220px; height:30px; float:left; position: relative; cursor:pointer; font-weight:bold; font-size:10px;
-            line-height:30px; text-align: center; border-width:5px; background-color:#e1e1e1; color:#5c5a5a;
-            border:4px solid #898888; font-family: Courier New, Verdana, Arial;}
-        #exdowncode .exdownbtn:hover{background-color:#f0d6d6; color:#c55757; border:4px solid #e66666;}
-        #exdownexec .exdownbtn:hover{background-color:#bedce8; color:#417794; border:4px solid #5d9cbd;}
+    form {
+      text-align: center;
+      padding: 20px;
+      background-color: #ecf0f1;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-        .fancybox-wrap fancybox-desktop fancybox-type-iframe fancybox-opened { width: 860px!important;}
-        .fancybox-inner { width: 850px!important; }
-        .fancybox-iframe { width: 830px!important; }
-    </style>
+    input[type="text"], button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
 
-    <script type="text/javascript">
-        $(document).ready(function()
-        {
-            window.addEventListener('keydown', function(e)
-            {
-                // Prevent SPACE key to scroll page
-                if ((e.keyCode == 32) && (e.target == document.body)) e.preventDefault();
-            });
+    button {
+      background-color: #34495e;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
 
-            var mainUrl = $(location).attr('href');
-            var name = mainUrl.slice(mainUrl.indexOf('=') + 1);
-
-            document.title = "raylib - " + name.replace('_', ' ');
-
-            var type = name.substring(0, name.indexOf("_"));
-
-
-            // Quick hack for some examples not working on web
-            if (name == "example_to_avoid")
-            {
-                $('#eximage').append('<img src="' + imgUrl + '" alt=" ">');
-            }
-            else
-            {
-                // #eximage filling code: canvas sample and image
-                $('#eximage').append(
-                    '<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()">' +
-                    '<img src="" alt=" ">' +
-                    '</canvas>');
-
-                Module.canvas = document.getElementById('canvas');
-                Module.canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-
-                //var jsUrl = name + '.js';
-                var jsUrl = 'walkthetalk.js';
-
-                // Run emscripten example
-                $.getScript(jsUrl, function() {});
-            }
-        });
-    </script>
+    button:hover {
+      background-color: #2c3e50;
+    }
+  </style>
 </head>
-
 <body>
-<h1 align="center" style="padding-bottom: 10px;">WalkTheTalk Challenge 2025</h1>
-<div class="emscripten">
-    <progress value="0" max="100" id="progress" hidden=1></progress>
+
+<header>
+  <h1>WalkTheTalk Challenge 2025</h1>
+</header>
+
+<div id="canvas-container">
+  <canvas id="canvas"></canvas>
 </div>
 
-<!-- Canvas example or image, filled on loading -->
-<div id="eximage"></div>
-
-<!--<textarea id="output" rows="8"></textarea>-->
-
+<form>
+  <label for="name">Navn:</label>
+  <select id="name" name="name">
+    <option value="Hassan">Hassan</option>
+    <option value="Hassan2">Hassan2</option>
+  </select>
+  <label for="steps">Skritt:</label>
+  <input id="steps" type="text" placeholder="Antall skritt">
+  <button type="submit">Send inn</button>
+</form>
 
 <script type='text/javascript'>
-    //var statusElement = document.getElementById('status');
-    //var progressElement = document.getElementById('progress');
-    //var spinnerElement = document.getElementById('spinner');
+  // Emscripten loading script would go here.
+  // Example (replace with your actual Emscripten loading code):
+  var Module = {
+    canvas: (function() { return document.getElementById('canvas'); })()
+  };
 
-    var Module = {
-        preRun: [],
-        postRun: [],
-        print: (function() {
-            var element = document.getElementById('output');
-            if (element) element.value = ''; // clear browser cache
-            return function(text) {
-                text = Array.prototype.slice.call(arguments).join(' ');
-                // These replacements are necessary if you render to raw HTML
-                //text = text.replace(/&/g, "&amp;");
-                //text = text.replace(/</g, "&lt;");
-                //text = text.replace(/>/g, "&gt;");
-                //text = text.replace('\n', '<br>', 'g');
-                console.log(text);
-                if (element) {
-                    element.value += text + "\n";
-                    element.scrollTop = element.scrollHeight; // focus on bottom
-                }
-            };
-        })(),
-        printErr: function(text) {
-            text = Array.prototype.slice.call(arguments).join(' ');
-            if (0) { // XXX disabled for safety typeof dump == 'function') {
-                dump(text + '\n'); // fast, straight to the real console
-            } else {
-                console.error(text);
-            }
-        },
-        canvas: (function() {
-            // NOTE: canvas element eventListener is added after appending!
-
-            //var canvas = document.getElementById('canvas');
-
-            // As a default initial behavior, pop up an alert when webgl context is lost. To make your
-            // application robust, you may want to override this behavior before shipping!
-            // See https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
-            //canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-
-            //return canvas;
-        })(),
-        setStatus: function(text) {
-            if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
-            if (text === Module.setStatus.text) return;
-            var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-            var now = Date.now();
-            if (m && now - Date.now() < 30) return; // if this is a progress update, skip it if too soon
-            if (m) {
-                text = m[1];
-                //progressElement.value = parseInt(m[2])*100;
-                //progressElement.max = parseInt(m[4])*100;
-                //progressElement.hidden = false;
-                //spinnerElement.hidden = false;
-            } else {
-                //progressElement.value = null;
-                //progressElement.max = null;
-                //progressElement.hidden = true;
-                //if (!text) spinnerElement.style.display = 'none';
-            }
-            //statusElement.innerHTML = text;
-        },
-        totalDependencies: 0,
-        monitorRunDependencies: function(left) {
-            this.totalDependencies = Math.max(this.totalDependencies, left);
-            Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-        }
-    };
-
-    Module.setStatus('Downloading...');
-
-    window.onerror = function(event) {
-        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
-        Module.setStatus('Exception thrown, see JavaScript console');
-        //spinnerElement.style.display = 'none';
-        Module.setStatus = function(text) {
-            if (text) Module.printErr('[post-exception status] ' + text);
-        };
-    };
+  // ... your Emscripten generated JavaScript ...
 </script>
 
-<!--<script async type="text/javascript" src="../examples/web/core_basic_window.js"></script>-->
+<script async type="text/javascript" src="walkthetalk.js"></script>
 
-<!-- prevent arrow keys fromscrolling the loaded game. -->
-<!-- <script src="/common/disable-arrow-scroll.js"></script> -->
 </body>
 </html>
