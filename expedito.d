@@ -1,1 +1,10 @@
-/home/martin/projects/rust/expedito/target/wasm32-unknown-emscripten/release/expedito.js: /home/martin/projects/rust/expedito/src/app.rs /home/martin/projects/rust/expedito/src/constants.rs /home/martin/projects/rust/expedito/src/data.rs /home/martin/projects/rust/expedito/src/expedition.rs /home/martin/projects/rust/expedito/src/lib.rs /home/martin/projects/rust/expedito/src/main.rs /home/martin/projects/rust/expedito/src/mapview.rs /home/martin/projects/rust/expedito/src/team.rs
+/workspaces/expedito/target/wasm32-unknown-emscripten/release/deps/expedito.js: src/main.rs src/app.rs src/team.rs src/expedition.rs src/constants.rs src/fetch_module.rs
+
+/workspaces/expedito/target/wasm32-unknown-emscripten/release/deps/expedito.d: src/main.rs src/app.rs src/team.rs src/expedition.rs src/constants.rs src/fetch_module.rs
+
+src/main.rs:
+src/app.rs:
+src/team.rs:
+src/expedition.rs:
+src/constants.rs:
+src/fetch_module.rs:
