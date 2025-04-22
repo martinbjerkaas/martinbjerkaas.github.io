@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ekspedisjon Kina</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="content-wrapper">
+  <header>
+    <img src="banner_final.png" alt="Ekspedisjon Kina">
+  </header>
+
+  <div>
+    <form id="apiForm" onsubmit="getData(event)">
+      <div class="input-button-container">
+        <input type="text" id="codename" name="codename" placeholder="Skriv inn kodeord" required>
+        <button type="submit">Hent Data</button>
+        <button type="button" onclick="window.location.href = '/index.html';">Tilbake</button>
+      </div>
+      <div id="responseMessage"></div>
+    </form>
+  </div>
+
+  <h2>Ukentlig oppsummering</h2>
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>Ukenummer</th>
+        <th>Registreringer</th>
+        <th>Totalt antall skritt</th>
+        <th>Missing Days</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Total</th>
+        <th id="total-entries"></th>
+        <th id="total-steps"></th>
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+
+  <h2>Alle registreringer</h2>
+  <label id="week-filter-label" for="week-filter">Filter by Week:</label>
+  <select id="week-filter">
+    <option value="">All Weeks</option>
+  </select>
+  <table id="all-entries-table">
+    <thead>
+      <tr>
+        <th>Week Number</th>
+        <th>Date</th>
+        <th>Steps</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+<div class="version-number">v1.28</div>
+
+<!-- The Modal -->
+<div id="missingDaysModal" class="modal">
+  <div class="modal-content">
+    <span class="close-button">&times;</span>
+    <h2>Report Missing Days</h2>
+    <ul id="missing-days-list">
+      <!-- Missing days will be listed here -->
+    </ul>
+    <form id="missingDaysForm" class="modal-form">
+      <label for="modal-codename">Kodeord:</label>
+      <input type="text" id="modal-codename" name="codename" readonly>
+
+      <label for="modal-date">Date:</label>
+      <input type="date" id="modal-date" name="date" required>
+
+      <label for="modal-steps">Steps:</label>
+      <input type="number" id="modal-steps" name="steps" value="1000" required>
+
+      <button type="button" onclick="submitMissingDays()">Submit</button>
+    </form>
+    <div id="modal-response"></div>
+  </div>
+</div>
+
+<script>
+  const eventId = "01b0843b-5bd4-4e2a-805d-8344216fe81c"; // Define eventId
+
+  // Get the modal
+  const modal = document.getElementById("missingDaysModal");
+
+  // Get the <span> element that closes the modal
+  const span = document.getElementsByClassName("close-button")[0];
+
+  // When the user clicks on <span> (x), close the modal
+  span.onclick = function() {
+    modal.style.display = "none";
+  }
+
+  // When the user clicks anywhere outside of the modal, close it
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((d - yearStart) / 86400000) / 7);
+    return weekNo;
+  }
+
+  async function getData(event) {
+    event.preventDefault();
+
+    const codename = document.getElementById('codename').value;
+    const weeklyTableBody = document.querySelector('#data-table tbody');
+    const allEntriesTableBody = document.querySelector('#all-entries-table tbody');
+    const responseDiv = document.getElementById('responseMessage');
+    const weekFilter = document.getElementById('week-filter');
+    const totalEntriesCell = document.getElementById('total-entries');
+    const totalStepsCell = document.getElementById('total-steps');
+
+    // Clear previous data
+    weeklyTableBody.innerHTML = '';
+    allEntriesTableBody.innerHTML = '';
+    responseDiv.textContent = '';
+    weekFilter.innerHTML = '<option value="">All Weeks</option>';
+    totalEntriesCell.textContent = '';
+    totalStepsCell.textContent = '';
+
+    try {
+      const response = await fetch('http://localhost:5000/event/submissions/participant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ "secretkey": codename })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (Array.isArray(data)) {
+        const weeklyData = {};
+        const allWeeks = new Set();
+        let grandTotalEntries = 0;
+        let grandTotalSteps = 0;
+
+        data.forEach(item => {
+          const date = new Date(item.date);
+          console.log("Original Date:", item.date);
+          console.log("Date Object:", date);
+          const weekNumber = getWeekNumber(date);
+          console.log("Week Number from getWeekNumber:", weekNumber);
+          const weekKey = date.getFullYear() + '-W' + weekNumber;
+          console.log("Generated weekKey:", weekKey);
+
+          if (!weeklyData[weekKey]) {
+            weeklyData[weekKey] = {
+              weekNumber: weekNumber,
+              totalSteps: 0,
+              entries: [],
+              dates: new Set() // Store dates for each week
+            };
+          }
+
+          weeklyData[weekKey].totalSteps += item.steps;
+          weeklyData[weekKey].entries.push(item);
+          weeklyData[weekKey].dates.add(item.date.substring(0, 10)); // Store date as YYYY-MM-DD
+          allWeeks.add(weekKey);
+        });
+
+        // Sort entries within each week by date
+        for (const weekKey in weeklyData) {
+          if (weeklyData.hasOwnProperty(weekKey)) {
+            weeklyData[weekKey].entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+          }
+        }
+
+        // Populate week filter options
+        allWeeks.forEach(weekKey => {
+          const option = document.createElement('option');
+          option.value = weekKey;
+          option.textContent = weekKey;
+          weekFilter.appendChild(option);
+        });
+
+        // Function to display entries based on selected week
+        const displayEntries = (selectedWeek) => {
+          allEntriesTableBody.innerHTML = ''; // Clear table
+          let rowClass = 1;
+
+          for (const weekKey in weeklyData) {
+            if (weeklyData.hasOwnProperty(weekKey)) {
+              if (selectedWeek === "" || selectedWeek === weekKey) {
+                const week = weeklyData[weekKey];
+                week.entries.forEach(item => {
+                  const row = allEntriesTableBody.insertRow();
+                  row.classList.add(`week-row-${rowClass}`); // Add row class
+
+                  const weekNumberCell = row.insertCell();
+                  const dateCell = row.insertCell();
+                  const stepsCell = row.insertCell();
+                  const statusCell = row.insertCell();
+
+                  weekNumberCell.textContent = week.weekNumber;
+                  dateCell.textContent = new Date(item.date).toLocaleDateString();
+                  stepsCell.textContent = item.steps;
+                  statusCell.textContent = item.status;
+                });
+              }
+            }
+
+            rowClass = rowClass === 1 ? 2 : 1; // Toggle row class for next week
+          }
+        };
+
+        // Initial display (all weeks)
+        displayEntries("");
+
+        // Add event listener to the week filter
+        weekFilter.addEventListener('change', () => {
+          const selectedWeek = weekFilter.value;
+          displayEntries(selectedWeek);
+        });
+
+        // Display the grouped data in the weekly summary table
+        for (const weekKey in weeklyData) {
+          if (weeklyData.hasOwnProperty(weekKey)) {
+            const week = weeklyData[weekKey];
+            const row = weeklyTableBody.insertRow();
+            const weekNumberCell = row.insertCell();
+            const numberOfEntriesCell = row.insertCell();
+            const totalStepsCell = row.insertCell();
+            const missingDaysCell = row.insertCell(); // New cell for missing days button
+
+            weekNumberCell.textContent = week.weekNumber;
+            numberOfEntriesCell.textContent = week.entries.length;
+            totalStepsCell.textContent = week.totalSteps;
+
+            grandTotalEntries += week.entries.length;
+            grandTotalSteps += week.totalSteps;
+
+            // Check for missing days (assuming 7 days in a week)
+            const expectedDays = 7;
+            const actualDays = week.dates.size;
+            if (actualDays < expectedDays) {
+              const missingDaysButton = document.createElement('button');
+              missingDaysButton.textContent = 'Report Missing Days';
+
+              // Use an IIFE to capture the correct weekKey
+              (function(weekKey) {
+                missingDaysButton.addEventListener('click', () => {
+                  // Open the modal and pre-fill data
+                  const missingDates = getMissingDates(weekKey, weeklyData);
+                  openMissingDaysModal(codename, missingDates, weekKey); // Pass weekKey to openMissingDaysModal
+                });
+              })(weekKey); // Pass the current weekKey to the IIFE
+
+              missingDaysCell.appendChild(missingDaysButton);
+            } else {
+              missingDaysCell.textContent = 'None';
+            }
+          }
+        }
+
+        totalEntriesCell.textContent = grandTotalEntries;
+        totalStepsCell.textContent = grandTotalSteps;
+      } else {
+        responseDiv.textContent = "No data found or invalid response format.";
+        responseDiv.style.color = "var(--error-color)";
+      }
+
+    } catch (error) {
+      responseDiv.textContent = `ERROR: ${error.message}`;
+      responseDiv.style.color = "var(--error-color)";
+    }
+  }
+
+  function getMissingDates(weekKey, weeklyData) {
+    const week = weeklyData[weekKey];
+
+    // Check if the week exists and has entries
+    if (!week || !week.entries || week.entries.length === 0) {
+        console.warn(`No entries found for week: ${weekKey}. Returning an empty missing dates list.`);
+        return []; // Return an empty array if there are no entries for the week
+    }
+
+    const dates = Array.from(week.dates); // Convert Set to Array (dates already submitted)
+    const missingDates = [];
+
+    // Get the year and week number from the weekKey
+    const [year, weekNum] = weekKey.split('-W');
+    const yearNum = parseInt(year, 10);
+    const weekNumber = parseInt(weekNum, 10);
+
+    // Calculate the first day of the week (Monday)
+    let firstDay = new Date(yearNum, 0, 1); // January 1st of the year
+    firstDay.setUTCDate(firstDay.getUTCDate() + (weekNumber - 1) * 7 - (firstDay.getUTCDay() + 6) % 7);
+
+    console.log("Submitted Dates:", dates);
+    console.log("First Day of Week:", firstDay);
+
+    // Generate all dates for the week (Monday to Sunday)
+    for (let i = 0; i < 7; i++) {
+        let currentDate = new Date(firstDay); // Create a new Date object to avoid modifying firstDay
+        currentDate.setDate(firstDay.getDate() + i); // Increment the date
+        let currentDateString = currentDate.toISOString().slice(0, 10); // YYYY-MM-DD
+        console.log("Current Date String:", currentDateString);
+
+        if (!dates.includes(currentDateString)) {
+            missingDates.push(currentDateString);
+        }
+    }
+
+    return missingDates;
+    }
+
+  function openMissingDaysModal(codename, missingDates, weekKey) {
+    document.getElementById('modal-codename').value = codename;
+
+    const missingDaysList = document.getElementById('missing-days-list');
+    missingDaysList.innerHTML = ''; // Clear previous list
+
+    missingDates.forEach(date => {
+      const listItem = document.createElement('li');
+      listItem.textContent = date;
+      listItem.dataset.date = date; // Store the date in a data attribute
+      missingDaysList.appendChild(listItem);
+    });
+
+    modal.style.display = "block";
+    modal.dataset.weekKey = weekKey; // Store weekKey in the modal
+  }
+
+  async function submitMissingDays() {
+    const codename = document.getElementById('modal-codename').value;
+    const date = document.getElementById('modal-date').value;
+    const steps = document.getElementById('modal-steps').value;
+    const modalResponseDiv = document.getElementById('modal-response');
+    const weekKey = document.getElementById('missingDaysModal').dataset.weekKey; // Retrieve weekKey from the modal
+
+    const payload = {
+      "event_id": eventId,
+      "secretkey": codename,
+      "date": date,
+      "steps": parseInt(steps)
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/event/submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        modalResponseDiv.textContent = "Submission successful!";
+        modalResponseDiv.classList.add('success');
+        modalResponseDiv.classList.remove('error');
+
+        // Remove the submitted date from the list
+        const missingDaysList = document.getElementById('missing-days-list');
+        const listItemToRemove = missingDaysList.querySelector(`li[data-date="${date}"]`);
+        if (listItemToRemove) {
+          missingDaysList.removeChild(listItemToRemove);
+        }
+
+        // Clear the modal response text and date input
+        document.getElementById('modal-date').value = ''; // Clear the date input
+        setTimeout(() => {
+          modalResponseDiv.textContent = ''; // Clear the response message after a delay
+          modalResponseDiv.classList.remove('success'); // Remove success class
+          // Close the modal if the list is empty
+          if (missingDaysList.children.length === 0) {
+            modal.style.display = "none";
+            // Refresh the data to update the summary table
+            getData(new Event('submit'));
+          }
+        }, 3000); // Clear after 3 seconds
+
+        // Optionally, close the modal after successful submission
+        // modal.style.display = "none";
+      } else {
+        const errorData = await response.json();
+        modalResponseDiv.textContent = `Submission failed: ${errorData.message || response.statusText}`;
+        modalResponseDiv.classList.add('error');
+        modalResponseDiv.classList.remove('success');
+      }
+    } catch (error) {
+      modalResponseDiv.textContent = `Submission error: ${error.message}`;
+      modalResponseDiv.classList.add('error');
+      modalResponseDiv.classList.remove('success');
+    }
+  }
+</script>
+
+</body>
+</html>
